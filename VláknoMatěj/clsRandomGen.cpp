@@ -17,10 +17,14 @@ DWORD WINAPI MyThreadStarter(LPVOID lpParam)
 //
 clsRandomGen::clsRandomGen() 
 {
+	//init critické sekce
+	InitializeCriticalSection(&mCSGenerator);
+
 	//seed generator
+
 	srand(time(NULL));
 	
-
+	mintActNumber = rand();
 	 //thread bue bìžet
 	 mblThreadStop = false;
 
@@ -31,23 +35,50 @@ clsRandomGen::clsRandomGen()
 clsRandomGen::~clsRandomGen() 
 {
 	mblThreadStop = true;
+
+	//delete critické sekce
+	DeleteCriticalSection(&mCSGenerator);
 }
 //
 // // thread generování èísel
 //
 void clsRandomGen::ThreadGen()
 {
-	do {
-		//generovat èíslo
-		mintActNumber = rand();
+	try 
+	{
+		do {
+			//vstoupit
+			EnterCriticalSection(&mCSGenerator);
 
-		printf("f");
-	} while (mblThreadStop == false);
+			//generovat èíslo
+			mintActNumber = rand();
+
+			//vystoupit
+			LeaveCriticalSection(&mCSGenerator);
+
+
+		} while (mblThreadStop == false);
+
+	}
+	catch (...)
+	{
+		LeaveCriticalSection(&mCSGenerator);
+	}
+	
 }
 //
 // // vrací aktuální èíslo
 //
 int clsRandomGen::GetRND()     
 {
-	return mintActNumber;
+	int lintNumber;
+
+	//vstoupit
+	EnterCriticalSection(&mCSGenerator);
+
+	lintNumber = mintActNumber;
+
+	//vystoupit
+	LeaveCriticalSection(&mCSGenerator);
+	return lintNumber;
 }
